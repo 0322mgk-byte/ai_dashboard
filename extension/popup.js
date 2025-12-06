@@ -75,8 +75,8 @@ function createServiceCard(config, data) {
   const lastUpdated = data?.lastUpdated ? formatTime(data.lastUpdated) : '데이터 없음';
 
   card.innerHTML = `
-    <div class="service-header">
-      <div class="service-logo-placeholder ${config.color}" onclick="openService('${config.url}')" title="클릭하여 이동">
+    <div class="service-header clickable-header" data-url="${config.url}">
+      <div class="service-logo-placeholder ${config.color}" title="클릭하여 이동">
         ${config.name.charAt(0)}
       </div>
       <div class="service-info">
@@ -125,6 +125,12 @@ function createServiceCard(config, data) {
     </div>
   `;
 
+  // Add click event listener for the header (logo + service name area)
+  const header = card.querySelector('.clickable-header');
+  header.addEventListener('click', () => {
+    chrome.tabs.create({ url: config.url });
+  });
+
   return card;
 }
 
@@ -168,14 +174,6 @@ function updateLastUpdate(services) {
 
   lastUpdateEl.textContent = latestUpdate ? formatTime(latestUpdate) : '-';
 }
-
-// Open service website
-function openService(url) {
-  chrome.tabs.create({ url });
-}
-
-// Make openService globally available
-window.openService = openService;
 
 // Setup event listeners
 function setupEventListeners() {
