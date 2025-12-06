@@ -3,7 +3,7 @@ const SERVICES = {
   kling: {
     id: 'kling',
     name: 'Kling AI',
-    url: 'https://app.klingai.com/global/user-profile/published/all',
+    url: 'https://app.klingai.com/global/membership/membership-plan',
     color: 'kling'
   },
   flow: {

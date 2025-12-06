@@ -1,5 +1,5 @@
 // Kling AI Credit Extractor
-// URL: https://app.klingai.com/global/user-profile
+// URL: https://app.klingai.com/global/membership/membership-plan
 
 (function() {
   'use strict';
@@ -28,103 +28,81 @@
       await new Promise(resolve => setTimeout(resolve, 3000));
 
       let credits = null;
+      let freeCredits = null;
+      let expiryDate = null;
 
+      const pageText = document.body.innerText;
       console.log(`[${SERVICE_NAME}] Searching for credits on ${location.href}...`);
 
-      // Method 1: Look for "크레딧 명세" popup content (남은 크레딧: 31)
-      const popupText = document.body.innerText;
-      const remainingMatch = popupText.match(/남은\s*크레딧[:\s]*(\d+)/);
+      // Method 1: Look for "남은 크레딧: 31" pattern on membership page
+      const remainingMatch = pageText.match(/남은\s*크레딧[:\s]*(\d+)/);
       if (remainingMatch) {
         credits = parseInt(remainingMatch[1], 10);
-        console.log(`[${SERVICE_NAME}] Found remaining credits from popup: ${credits}`);
+        console.log(`[${SERVICE_NAME}] Found 남은 크레딧: ${credits}`);
       }
 
-      // Method 2: Look for credit display in profile page
-      // The profile page shows "멤버십 플랜" and "크레딧" tabs
+      // Method 2: Look for "무료 크레딧:31" pattern
       if (credits === null) {
-        // Find elements containing "크레딧" text
-        const allElements = document.querySelectorAll('*');
-        for (const el of allElements) {
-          const text = (el.textContent || '').trim();
+        const freeMatch = pageText.match(/무료\s*크레딧[:\s]*(\d+)/);
+        if (freeMatch) {
+          freeCredits = parseInt(freeMatch[1], 10);
+          credits = freeCredits;
+          console.log(`[${SERVICE_NAME}] Found 무료 크레딧: ${credits}`);
+        }
+      }
 
-          // Look for standalone small numbers near credit-related text
-          if (text === '크레딧' || text.includes('크레딧')) {
-            // Check parent and siblings for numbers
-            const parent = el.parentElement;
-            if (parent) {
-              const siblings = parent.querySelectorAll('*');
-              for (const sib of siblings) {
-                const sibText = (sib.textContent || '').trim();
-                if (/^\d{1,4}$/.test(sibText)) {
-                  const num = parseInt(sibText, 10);
-                  if (num >= 0 && num <= 9999) {
-                    credits = num;
-                    console.log(`[${SERVICE_NAME}] Found credits near 크레딧 text: ${credits}`);
-                    break;
-                  }
-                }
-              }
+      // Method 3: Look for expiry date "2026/01/04" or "2026년 01월 04일"
+      const expiryMatch = pageText.match(/(\d{4})[\/\-년](\d{1,2})[\/\-월](\d{1,2})[일]?\s*에?\s*만료/);
+      if (expiryMatch) {
+        expiryDate = `${expiryMatch[1]}/${expiryMatch[2].padStart(2, '0')}/${expiryMatch[3].padStart(2, '0')}`;
+        console.log(`[${SERVICE_NAME}] Found expiry date: ${expiryDate}`);
+      }
+
+      // Method 4: Search for credit numbers near "크레딧" text
+      if (credits === null) {
+        // Find all elements and look for credit-related content
+        const allText = document.body.innerText;
+        const patterns = [
+          /크레딧[:\s]*(\d+)/gi,
+          /(\d+)\s*크레딧/gi,
+        ];
+
+        for (const pattern of patterns) {
+          const matches = [...allText.matchAll(pattern)];
+          for (const match of matches) {
+            const num = parseInt(match[1], 10);
+            if (num > 0 && num <= 10000) {
+              credits = num;
+              console.log(`[${SERVICE_NAME}] Found credits via pattern: ${credits}`);
+              break;
             }
           }
           if (credits !== null) break;
         }
       }
 
-      // Method 3: Search for patterns in page text
+      // Method 5: Look for standalone numbers in credit-related elements
       if (credits === null) {
-        const patterns = [
-          /남은\s*크레딧[:\s=]*(\d+)/gi,
-          /잔여\s*크레딧[:\s=]*(\d+)/gi,
-          /(\d+)\s*크레딧\s*남/gi,
-          /크레딧\s*증정[:\s]*(\d+)/gi,
-        ];
-
-        for (const pattern of patterns) {
-          const match = popupText.match(pattern);
-          if (match) {
-            const numMatch = match[0].match(/(\d+)/);
-            if (numMatch) {
-              credits = parseInt(numMatch[1], 10);
-              console.log(`[${SERVICE_NAME}] Found credits via pattern: ${credits}`);
+        const elements = document.querySelectorAll('[class*="credit"], [class*="Credit"], [class*="point"], [class*="balance"]');
+        for (const el of elements) {
+          const text = (el.textContent || '').trim();
+          const numMatch = text.match(/(\d+)/);
+          if (numMatch) {
+            const num = parseInt(numMatch[1], 10);
+            if (num > 0 && num <= 10000) {
+              credits = num;
+              console.log(`[${SERVICE_NAME}] Found credits from element: ${credits}`);
               break;
             }
           }
         }
       }
 
-      // Method 4: Find credit-related class names
-      if (credits === null) {
-        const creditSelectors = [
-          '[class*="credit"]',
-          '[class*="Credit"]',
-          '[class*="point"]',
-          '[class*="balance"]',
-          '[class*="coin"]'
-        ];
-
-        for (const selector of creditSelectors) {
-          try {
-            const elements = document.querySelectorAll(selector);
-            for (const el of elements) {
-              const text = (el.textContent || '').trim();
-              const numMatch = text.match(/^(\d{1,4})$/);
-              if (numMatch) {
-                credits = parseInt(numMatch[1], 10);
-                console.log(`[${SERVICE_NAME}] Found credits from selector ${selector}: ${credits}`);
-                break;
-              }
-            }
-          } catch (e) {}
-          if (credits !== null) break;
-        }
-      }
-
       if (credits !== null) {
-        await saveCredits(credits);
+        await saveCredits(credits, expiryDate);
         return credits;
       } else {
         console.log(`[${SERVICE_NAME}] Could not find credit information`);
-        console.log(`[${SERVICE_NAME}] Tip: Open the 크레딧 명세 popup on the profile page`);
         return null;
       }
 
@@ -135,7 +113,7 @@
   }
 
   // Save credits to Chrome storage
-  async function saveCredits(credits) {
+  async function saveCredits(credits, expiryDate = null) {
     if (!isExtensionValid()) {
       console.log(`[${SERVICE_NAME}] Extension context invalidated, cannot save.`);
       return;
@@ -162,15 +140,17 @@
         services[SERVICE_ID] = {
           name: SERVICE_NAME,
           credits: credits,
+          expiryDate: expiryDate,
           lastUpdated: new Date().toISOString(),
           history: filteredHistory.slice(-100)
         };
 
         await chrome.storage.local.set({ services });
-        console.log(`[${SERVICE_NAME}] Credits saved: ${credits}`);
+        console.log(`[${SERVICE_NAME}] Credits saved: ${credits}, expiry: ${expiryDate}`);
       } else {
         services[SERVICE_ID] = {
           ...services[SERVICE_ID],
+          expiryDate: expiryDate || services[SERVICE_ID]?.expiryDate,
           lastUpdated: new Date().toISOString()
         };
         await chrome.storage.local.set({ services });
@@ -201,34 +181,18 @@
       });
     }
 
-    // Re-extract on DOM changes (for popup detection)
+    // Re-extract on DOM changes
     let debounceTimer;
     const observer = new MutationObserver(() => {
       if (!isExtensionValid()) {
         observer.disconnect();
         return;
       }
-      // Debounce to avoid too many calls
       clearTimeout(debounceTimer);
-      debounceTimer = setTimeout(() => {
-        // Check if 크레딧 명세 popup is visible
-        if (document.body.innerText.includes('남은 크레딧') ||
-            document.body.innerText.includes('크레딧 명세')) {
-          extractCredits();
-        }
-      }, 1000);
+      debounceTimer = setTimeout(extractCredits, 2000);
     });
 
     observer.observe(document.body, { childList: true, subtree: true });
-
-    // Periodic re-check every 30 seconds
-    const intervalId = setInterval(() => {
-      if (!isExtensionValid()) {
-        clearInterval(intervalId);
-        return;
-      }
-      extractCredits();
-    }, 30000);
   }
 
   init();

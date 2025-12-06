@@ -80,7 +80,7 @@ async function getCredits() {
 // Refresh all services by opening tabs
 async function refreshAllServices() {
   const serviceUrls = [
-    'https://app.klingai.com/global/user-profile/published/all',
+    'https://app.klingai.com/global/membership/membership-plan',
     'https://one.google.com/ai/activity?utm_source=flow'
   ];
 
