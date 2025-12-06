@@ -20,7 +20,6 @@ const emptyState = document.getElementById('emptyState');
 const refreshBtn = document.getElementById('refreshBtn');
 const settingsBtn = document.getElementById('settingsBtn');
 const lastUpdateEl = document.getElementById('lastUpdate');
-const toastContainer = document.getElementById('toastContainer');
 
 // Initialize
 document.addEventListener('DOMContentLoaded', () => {
