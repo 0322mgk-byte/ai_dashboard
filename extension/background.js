@@ -1,6 +1,9 @@
 // AI Credits Dashboard - Background Service Worker
 
-// Initialize storage on install
+const ALARM_NAME = 'autoRefreshCredits';
+const DEFAULT_REFRESH_INTERVAL = 30; // 30 minutes
+
+// Initialize storage and alarm on install
 chrome.runtime.onInstalled.addListener(async (details) => {
   console.log('[AI Credits Dashboard] Extension installed/updated');
 
@@ -11,18 +14,57 @@ chrome.runtime.onInstalled.addListener(async (details) => {
       settings: {
         notifications: true,
         lowCreditThreshold: 100,
-        refreshInterval: 300000 // 5 minutes
+        autoRefreshEnabled: true,
+        autoRefreshInterval: DEFAULT_REFRESH_INTERVAL // minutes
       }
     };
 
     await chrome.storage.local.set(defaultData);
     console.log('[AI Credits Dashboard] Default settings initialized');
   }
+
+  // Setup auto-refresh alarm
+  await setupAutoRefreshAlarm();
 });
 
-// Listen for messages from content scripts
+// Setup auto-refresh alarm
+async function setupAutoRefreshAlarm() {
+  try {
+    const result = await chrome.storage.local.get(['settings']);
+    const settings = result.settings || {};
+
+    // Clear existing alarm
+    await chrome.alarms.clear(ALARM_NAME);
+
+    if (settings.autoRefreshEnabled !== false) {
+      const interval = settings.autoRefreshInterval || DEFAULT_REFRESH_INTERVAL;
+
+      // Create alarm that fires periodically
+      chrome.alarms.create(ALARM_NAME, {
+        delayInMinutes: interval, // First trigger after interval
+        periodInMinutes: interval // Then repeat every interval
+      });
+
+      console.log(`[AI Credits Dashboard] Auto-refresh alarm set for every ${interval} minutes`);
+    } else {
+      console.log('[AI Credits Dashboard] Auto-refresh is disabled');
+    }
+  } catch (error) {
+    console.error('[AI Credits Dashboard] Error setting up alarm:', error);
+  }
+}
+
+// Listen for alarm events
+chrome.alarms.onAlarm.addListener(async (alarm) => {
+  if (alarm.name === ALARM_NAME) {
+    console.log('[AI Credits Dashboard] Auto-refresh triggered');
+    await refreshAllServices();
+  }
+});
+
+// Listen for messages from content scripts and popup
 chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
-  console.log('[AI Credits Dashboard] Message received:', message);
+  console.log('[AI Credits Dashboard] Message received:', message.type, message);
 
   if (message.type === 'CREDITS_UPDATED') {
     handleCreditsUpdate(message.data);
@@ -31,11 +73,22 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
 
   if (message.type === 'GET_CREDITS') {
     getCredits().then(sendResponse);
-    return true; // Keep channel open for async response
+    return true;
   }
 
   if (message.type === 'REFRESH_ALL') {
-    refreshAllServices().then(sendResponse);
+    console.log('[AI Credits Dashboard] REFRESH_ALL received, starting refresh...');
+    refreshAllServices().then((result) => {
+      console.log('[AI Credits Dashboard] REFRESH_ALL completed:', result);
+      sendResponse(result);
+    });
+    return true;
+  }
+
+  if (message.type === 'UPDATE_ALARM_SETTINGS') {
+    setupAutoRefreshAlarm().then(() => {
+      sendResponse({ success: true });
+    });
     return true;
   }
 });
@@ -77,21 +130,25 @@ async function getCredits() {
   }
 }
 
-// Refresh all services by opening tabs
+// Service configurations for refresh
+const SERVICE_CONFIGS = [
+  {
+    url: 'https://app.klingai.com/global/membership/membership-plan',
+    scriptFile: 'content-scripts/kling.js'
+  },
+  {
+    url: 'https://one.google.com/ai/activity?utm_source=flow',
+    scriptFile: 'content-scripts/flow.js'
+  }
+];
+
+// Refresh all services by opening tabs and forcing script execution
 async function refreshAllServices() {
-  const serviceUrls = [
-    'https://app.klingai.com/global/membership/membership-plan',
-    'https://one.google.com/ai/activity?utm_source=flow'
-  ];
+  console.log('[AI Credits Dashboard] Starting refresh for all services...');
 
   try {
-    for (const url of serviceUrls) {
-      const tab = await chrome.tabs.create({ url, active: false });
-
-      // Close tab after content script has time to run
-      setTimeout(() => {
-        chrome.tabs.remove(tab.id).catch(() => {});
-      }, 5000);
+    for (const service of SERVICE_CONFIGS) {
+      await refreshService(service);
     }
 
     return { success: true, message: 'Refresh initiated' };
@@ -100,5 +157,62 @@ async function refreshAllServices() {
     return { success: false, error: error.message };
   }
 }
+
+// Refresh a single service
+async function refreshService(service) {
+  return new Promise(async (resolve) => {
+    try {
+      // Create tab
+      const tab = await chrome.tabs.create({ url: service.url, active: false });
+      console.log(`[AI Credits Dashboard] Created tab ${tab.id} for ${service.url}`);
+
+      // Listen for tab to complete loading
+      const onUpdated = async (tabId, changeInfo) => {
+        if (tabId === tab.id && changeInfo.status === 'complete') {
+          chrome.tabs.onUpdated.removeListener(onUpdated);
+
+          // Wait a bit for page to render dynamic content
+          setTimeout(async () => {
+            try {
+              // Force execute content script
+              await chrome.scripting.executeScript({
+                target: { tabId: tab.id },
+                files: [service.scriptFile]
+              });
+              console.log(`[AI Credits Dashboard] Script executed on tab ${tab.id}`);
+
+              // Wait for script to extract data (kling.js waits 5s, so we wait 8s total)
+              setTimeout(() => {
+                chrome.tabs.remove(tab.id).catch(() => {});
+                console.log(`[AI Credits Dashboard] Closed tab ${tab.id}`);
+                resolve();
+              }, 8000);
+            } catch (err) {
+              console.error(`[AI Credits Dashboard] Script execution error:`, err);
+              chrome.tabs.remove(tab.id).catch(() => {});
+              resolve();
+            }
+          }, 3000);
+        }
+      };
+
+      chrome.tabs.onUpdated.addListener(onUpdated);
+
+      // Timeout fallback - close tab after 20 seconds regardless
+      setTimeout(() => {
+        chrome.tabs.onUpdated.removeListener(onUpdated);
+        chrome.tabs.remove(tab.id).catch(() => {});
+        resolve();
+      }, 20000);
+
+    } catch (error) {
+      console.error(`[AI Credits Dashboard] Error refreshing ${service.url}:`, error);
+      resolve();
+    }
+  });
+}
+
+// Initialize alarm on service worker startup (browser restart)
+setupAutoRefreshAlarm();
 
 console.log('[AI Credits Dashboard] Background service worker initialized');

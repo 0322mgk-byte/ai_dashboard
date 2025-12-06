@@ -46,6 +46,51 @@
     </footer>
   </div>
 
+  <!-- Settings Modal -->
+  <div id="settingsModal" class="modal hidden">
+    <div class="modal-backdrop"></div>
+    <div class="modal-content">
+      <div class="modal-header">
+        <h2 class="modal-title">설정</h2>
+        <button id="closeSettingsBtn" class="btn-close">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <path d="M18 6L6 18M6 6l12 12"/>
+          </svg>
+        </button>
+      </div>
+      <div class="modal-body">
+        <!-- Auto Refresh Toggle -->
+        <div class="setting-item">
+          <div class="setting-info">
+            <span class="setting-label">백그라운드 자동 수집</span>
+            <span class="setting-desc">주기적으로 크레딧 정보를 자동 수집합니다</span>
+          </div>
+          <label class="toggle">
+            <input type="checkbox" id="autoRefreshToggle">
+            <span class="toggle-slider"></span>
+          </label>
+        </div>
+
+        <!-- Refresh Interval -->
+        <div class="setting-item" id="intervalSetting">
+          <div class="setting-info">
+            <span class="setting-label">자동 새로고침 주기</span>
+            <span class="setting-desc">크레딧 정보를 수집하는 간격</span>
+          </div>
+          <select id="refreshInterval" class="setting-select">
+            <option value="5">5분</option>
+            <option value="10">10분</option>
+            <option value="30">30분</option>
+            <option value="60">1시간</option>
+          </select>
+        </div>
+      </div>
+      <div class="modal-footer">
+        <button id="saveSettingsBtn" class="btn-primary">저장</button>
+      </div>
+    </div>
+  </div>
+
   <script src="popup.js"></script>
 </body>
 </html>

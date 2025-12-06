@@ -5,7 +5,9 @@
   "description": "여러 AI 서비스의 잔여 크레딧을 한눈에 확인하는 대시보드",
   "permissions": [
     "storage",
-    "tabs"
+    "tabs",
+    "alarms",
+    "scripting"
   ],
   "host_permissions": [
     "https://klingai.com/*",

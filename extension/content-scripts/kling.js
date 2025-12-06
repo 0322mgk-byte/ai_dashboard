@@ -24,8 +24,8 @@
     }
 
     try {
-      // Wait for the page to load
-      await new Promise(resolve => setTimeout(resolve, 3000));
+      // Wait for the page to load - increased for background tabs
+      await new Promise(resolve => setTimeout(resolve, 5000));
 
       let credits = null;
       let freeCredits = null;
@@ -33,6 +33,7 @@
 
       const pageText = document.body.innerText;
       console.log(`[${SERVICE_NAME}] Searching for credits on ${location.href}...`);
+      console.log(`[${SERVICE_NAME}] Page text sample (first 500 chars):`, pageText.substring(0, 500));
 
       // Method 1: Look for "남은 크레딧: 31" pattern on membership page
       const remainingMatch = pageText.match(/남은\s*크레딧[:\s]*(\d+)/);

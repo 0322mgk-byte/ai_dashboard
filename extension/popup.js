@@ -21,6 +21,14 @@ const refreshBtn = document.getElementById('refreshBtn');
 const settingsBtn = document.getElementById('settingsBtn');
 const lastUpdateEl = document.getElementById('lastUpdate');
 
+// Settings Modal Elements
+const settingsModal = document.getElementById('settingsModal');
+const closeSettingsBtn = document.getElementById('closeSettingsBtn');
+const saveSettingsBtn = document.getElementById('saveSettingsBtn');
+const autoRefreshToggle = document.getElementById('autoRefreshToggle');
+const refreshIntervalSelect = document.getElementById('refreshInterval');
+const intervalSetting = document.getElementById('intervalSetting');
+
 // Initialize
 document.addEventListener('DOMContentLoaded', () => {
   loadCredits();
@@ -200,8 +208,16 @@ function setupEventListeners() {
   refreshBtn.addEventListener('click', handleRefresh);
 
   // Settings button
-  settingsBtn.addEventListener('click', () => {
-    showToast('설정 기능은 준비 중입니다', 'info');
+  settingsBtn.addEventListener('click', openSettingsModal);
+
+  // Settings modal events
+  closeSettingsBtn.addEventListener('click', closeSettingsModal);
+  settingsModal.querySelector('.modal-backdrop').addEventListener('click', closeSettingsModal);
+  saveSettingsBtn.addEventListener('click', saveSettings);
+
+  // Toggle auto-refresh enables/disables interval setting
+  autoRefreshToggle.addEventListener('change', () => {
+    updateIntervalSettingState();
   });
 
   // Listen for storage changes
@@ -216,27 +232,16 @@ function setupEventListeners() {
 // Handle refresh
 async function handleRefresh() {
   refreshBtn.classList.add('loading');
+  showToast('크레딧 정보를 업데이트 중입니다...', 'info');
 
   try {
-    // Open service tabs in background to trigger content scripts
-    const urls = Object.values(SERVICES).map(s => s.url);
+    // Use background script for reliable refresh
+    chrome.runtime.sendMessage({ type: 'REFRESH_ALL' });
 
-    for (const url of urls) {
-      const tab = await chrome.tabs.create({ url, active: false });
-
-      // Close tab after 5 seconds
-      setTimeout(() => {
-        chrome.tabs.remove(tab.id).catch(() => {});
-      }, 5000);
-    }
-
-    showToast('크레딧 정보를 업데이트 중입니다...', 'info');
-
-    // Reload credits after delay
+    // Remove loading state after expected completion time
     setTimeout(() => {
-      loadCredits();
       refreshBtn.classList.remove('loading');
-    }, 6000);
+    }, 10000);
 
   } catch (error) {
     console.error('Refresh failed:', error);
@@ -274,4 +279,66 @@ function showStatusMessage(message, type = 'info', serviceId = null) {
 function showToast(message, type = 'info') {
   // Use inline status message instead
   showStatusMessage(message, type);
+}
+
+// Settings Modal Functions
+async function openSettingsModal() {
+  // Load current settings
+  try {
+    const result = await chrome.storage.local.get(['settings']);
+    const settings = result.settings || {};
+
+    // Set toggle state (default: true)
+    autoRefreshToggle.checked = settings.autoRefreshEnabled !== false;
+
+    // Set interval value (default: 30)
+    const interval = settings.autoRefreshInterval || 30;
+    refreshIntervalSelect.value = interval.toString();
+
+    // Update interval setting visibility
+    updateIntervalSettingState();
+
+    // Show modal
+    settingsModal.classList.remove('hidden');
+  } catch (error) {
+    console.error('Failed to load settings:', error);
+    showToast('설정을 불러올 수 없습니다', 'error');
+  }
+}
+
+function closeSettingsModal() {
+  settingsModal.classList.add('hidden');
+}
+
+function updateIntervalSettingState() {
+  if (autoRefreshToggle.checked) {
+    intervalSetting.classList.remove('disabled');
+  } else {
+    intervalSetting.classList.add('disabled');
+  }
+}
+
+async function saveSettings() {
+  try {
+    const result = await chrome.storage.local.get(['settings']);
+    const settings = result.settings || {};
+
+    // Update settings
+    settings.autoRefreshEnabled = autoRefreshToggle.checked;
+    settings.autoRefreshInterval = parseInt(refreshIntervalSelect.value, 10);
+
+    // Save to storage
+    await chrome.storage.local.set({ settings });
+
+    // Notify background script to update alarm
+    chrome.runtime.sendMessage({ type: 'UPDATE_ALARM_SETTINGS' });
+
+    // Close modal and show success
+    closeSettingsModal();
+    showToast('설정이 저장되었습니다', 'success');
+
+  } catch (error) {
+    console.error('Failed to save settings:', error);
+    showToast('설정 저장에 실패했습니다', 'error');
+  }
 }
