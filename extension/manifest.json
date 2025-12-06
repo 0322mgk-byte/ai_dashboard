@@ -1,0 +1,45 @@
+{
+  "manifest_version": 3,
+  "name": "AI Credits Dashboard",
+  "version": "1.0.0",
+  "description": "여러 AI 서비스의 잔여 크레딧을 한눈에 확인하는 대시보드",
+  "permissions": [
+    "storage",
+    "tabs"
+  ],
+  "host_permissions": [
+    "https://klingai.com/*",
+    "https://app.klingai.com/*",
+    "https://labs.google/*",
+    "https://one.google.com/*"
+  ],
+  "action": {
+    "default_popup": "popup.html",
+    "default_icon": {
+      "16": "icons/icon16.png",
+      "48": "icons/icon48.png",
+      "128": "icons/icon128.png"
+    },
+    "default_title": "AI Credits Dashboard"
+  },
+  "icons": {
+    "16": "icons/icon16.png",
+    "48": "icons/icon48.png",
+    "128": "icons/icon128.png"
+  },
+  "background": {
+    "service_worker": "background.js"
+  },
+  "content_scripts": [
+    {
+      "matches": ["https://klingai.com/*", "https://app.klingai.com/*"],
+      "js": ["content-scripts/kling.js"],
+      "run_at": "document_idle"
+    },
+    {
+      "matches": ["https://labs.google/*", "https://one.google.com/ai/*"],
+      "js": ["content-scripts/flow.js"],
+      "run_at": "document_idle"
+    }
+  ]
+}

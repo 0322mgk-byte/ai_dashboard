@@ -1,0 +1,40 @@
+# Claude Code local settings
+.claude/
+
+# IDE settings
+.vscode/
+.idea/
+*.swp
+*.swo
+
+# OS generated files
+.DS_Store
+Thumbs.db
+desktop.ini
+
+# Node modules (if any)
+node_modules/
+
+# Environment files with secrets
+.env
+.env.local
+.env.*.local
+*.env
+
+# Credentials and keys
+*.pem
+*.key
+*.crt
+credentials.json
+secrets.json
+*secret*
+*credential*
+
+# Logs
+*.log
+npm-debug.log*
+
+# Build outputs
+dist/
+build/
+*.zip
