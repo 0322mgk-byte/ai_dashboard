@@ -203,86 +203,29 @@ body {
   font-weight: 600;
 }
 
-.credit-badge.high {
-  background: #d1fae5;
-  color: #059669;
+.credit-badge {
+  background: #e0e7ff;
+  color: #4338ca;
 }
 
-.credit-badge.medium {
-  background: #fef3c7;
-  color: #d97706;
-}
-
-.credit-badge.low {
-  background: #fee2e2;
-  color: #dc2626;
-}
-
-/* Credit Details */
-.credit-details {
-  display: grid;
-  grid-template-columns: repeat(3, 1fr);
+/* Expiry Info */
+.expiry-info {
+  display: flex;
+  align-items: center;
   gap: 8px;
-  margin-bottom: 12px;
-}
-
-.credit-item {
-  text-align: center;
-  padding: 8px;
+  padding: 10px 12px;
   background: #f9fafb;
   border-radius: 8px;
+  margin-bottom: 10px;
+  font-size: 13px;
+  color: #374151;
 }
 
-.credit-label {
-  font-size: 10px;
-  color: #9ca3af;
-  text-transform: uppercase;
-  letter-spacing: 0.5px;
-}
-
-.credit-value {
-  font-size: 16px;
-  font-weight: 600;
-  color: #111827;
-  margin-top: 2px;
-}
-
-/* Progress Bar */
-.progress-container {
-  margin-bottom: 8px;
-}
-
-.progress-bar {
-  height: 6px;
-  background: #e5e7eb;
-  border-radius: 3px;
-  overflow: hidden;
-}
-
-.progress-fill {
-  height: 100%;
-  border-radius: 3px;
-  transition: width 0.3s ease;
-}
-
-.progress-fill.high {
-  background: linear-gradient(90deg, #10b981, #34d399);
-}
-
-.progress-fill.medium {
-  background: linear-gradient(90deg, #f59e0b, #fbbf24);
-}
-
-.progress-fill.low {
-  background: linear-gradient(90deg, #ef4444, #f87171);
-}
-
-.progress-text {
-  display: flex;
-  justify-content: space-between;
-  font-size: 11px;
+.expiry-info svg {
+  width: 16px;
+  height: 16px;
   color: #6b7280;
-  margin-top: 4px;
+  flex-shrink: 0;
 }
 
 /* Update Time */

@@ -51,11 +51,30 @@
         }
       }
 
-      // Method 3: Look for expiry date "2026/01/04" or "2026년 01월 04일"
-      const expiryMatch = pageText.match(/(\d{4})[\/\-년](\d{1,2})[\/\-월](\d{1,2})[일]?\s*에?\s*만료/);
+      // Method 3: Look for expiry date patterns
+      // Pattern 1: "2026/01/04에 만료" or "2026-01-04 만료"
+      let expiryMatch = pageText.match(/(\d{4})[\/\-](\d{1,2})[\/\-](\d{1,2})\s*에?\s*만료/);
       if (expiryMatch) {
         expiryDate = `${expiryMatch[1]}/${expiryMatch[2].padStart(2, '0')}/${expiryMatch[3].padStart(2, '0')}`;
-        console.log(`[${SERVICE_NAME}] Found expiry date: ${expiryDate}`);
+        console.log(`[${SERVICE_NAME}] Found expiry date (pattern 1): ${expiryDate}`);
+      }
+
+      // Pattern 2: "만료: 2026/01/04" or standalone date near "만료"
+      if (!expiryDate) {
+        expiryMatch = pageText.match(/만료[:\s]*(\d{4})[\/\-](\d{1,2})[\/\-](\d{1,2})/);
+        if (expiryMatch) {
+          expiryDate = `${expiryMatch[1]}/${expiryMatch[2].padStart(2, '0')}/${expiryMatch[3].padStart(2, '0')}`;
+          console.log(`[${SERVICE_NAME}] Found expiry date (pattern 2): ${expiryDate}`);
+        }
+      }
+
+      // Pattern 3: Just find any date in format YYYY/MM/DD or YYYY-MM-DD on the page
+      if (!expiryDate) {
+        expiryMatch = pageText.match(/(\d{4})[\/\-](\d{1,2})[\/\-](\d{1,2})/);
+        if (expiryMatch) {
+          expiryDate = `${expiryMatch[1]}/${expiryMatch[2].padStart(2, '0')}/${expiryMatch[3].padStart(2, '0')}`;
+          console.log(`[${SERVICE_NAME}] Found expiry date (pattern 3): ${expiryDate}`);
+        }
       }
 
       // Method 4: Search for credit numbers near "크레딧" text

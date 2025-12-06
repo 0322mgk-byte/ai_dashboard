@@ -62,17 +62,51 @@ function renderServices(services) {
   });
 }
 
+// Format expiry date to unified format "YYYY년 MM월 DD일"
+function formatExpiryDate(dateStr) {
+  if (!dateStr) return null;
+
+  // Handle various date formats
+  let year, month, day;
+
+  // Format: "2026/01/04" or "2026-01-04"
+  const slashMatch = dateStr.match(/(\d{4})[\/\-](\d{1,2})[\/\-](\d{1,2})/);
+  if (slashMatch) {
+    year = slashMatch[1];
+    month = slashMatch[2].padStart(2, '0');
+    day = slashMatch[3].padStart(2, '0');
+    return `${year}년 ${month}월 ${day}일`;
+  }
+
+  // Format: "1월 15일" (needs current year)
+  const monthDayMatch = dateStr.match(/(\d{1,2})월\s*(\d{1,2})일/);
+  if (monthDayMatch) {
+    const now = new Date();
+    year = now.getFullYear();
+    month = monthDayMatch[1].padStart(2, '0');
+    day = monthDayMatch[2].padStart(2, '0');
+    // If the date is in the past, assume next year
+    const expiryDate = new Date(year, parseInt(month) - 1, parseInt(day));
+    if (expiryDate < now) {
+      year = year + 1;
+    }
+    return `${year}년 ${month}월 ${day}일`;
+  }
+
+  return dateStr;
+}
+
 // Create service card element
 function createServiceCard(config, data) {
   const card = document.createElement('div');
   card.className = 'service-card';
 
   const credits = data?.credits ?? 0;
-  const total = data?.total ?? credits;
-  const used = data?.used ?? 0;
-  const percentage = total > 0 ? Math.round((credits / total) * 100) : 0;
-  const status = getStatus(percentage);
   const lastUpdated = data?.lastUpdated ? formatTime(data.lastUpdated) : '데이터 없음';
+
+  // Get expiry date (kling uses expiryDate, flow uses resetDate)
+  const rawExpiryDate = data?.expiryDate || data?.resetDate;
+  const expiryDate = formatExpiryDate(rawExpiryDate);
 
   card.innerHTML = `
     <div class="service-header clickable-header" data-url="${config.url}">
@@ -88,32 +122,17 @@ function createServiceCard(config, data) {
         </div>
         <div class="service-subtitle">클릭하여 이동</div>
       </div>
-      <span class="credit-badge ${status}">${credits.toLocaleString()} 크레딧</span>
+      <span class="credit-badge">${credits.toLocaleString()} 크레딧</span>
     </div>
 
-    <div class="credit-details">
-      <div class="credit-item">
-        <div class="credit-label">전체</div>
-        <div class="credit-value">${total > 0 ? total.toLocaleString() : '-'}</div>
-      </div>
-      <div class="credit-item">
-        <div class="credit-label">사용</div>
-        <div class="credit-value">${used > 0 ? used.toLocaleString() : '-'}</div>
-      </div>
-      <div class="credit-item">
-        <div class="credit-label">잔여</div>
-        <div class="credit-value">${credits.toLocaleString()}</div>
-      </div>
-    </div>
-
-    <div class="progress-container">
-      <div class="progress-bar">
-        <div class="progress-fill ${status}" style="width: ${percentage}%"></div>
-      </div>
-      <div class="progress-text">
-        <span>잔여율</span>
-        <span>${percentage}%</span>
-      </div>
+    <div class="expiry-info">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+        <rect x="3" y="4" width="18" height="18" rx="2" ry="2"/>
+        <line x1="16" y1="2" x2="16" y2="6"/>
+        <line x1="8" y1="2" x2="8" y2="6"/>
+        <line x1="3" y1="10" x2="21" y2="10"/>
+      </svg>
+      <span>만료: ${expiryDate || '정보 없음'}</span>
     </div>
 
     <div class="update-time">

@@ -20,6 +20,23 @@
 
       // Check if we're on the Google One AI activity page
       if (location.href.includes('one.google.com/ai')) {
+        const pageText = document.body.innerText;
+
+        // Extract reset date first - "다음 업데이트: 12월 11일" pattern
+        const resetPatterns = [
+          /다음\s*업데이트[:\s]*(\d{1,2})월\s*(\d{1,2})일/,
+          /Next\s*update[:\s]*(\w+)\s+(\d{1,2})/i
+        ];
+
+        for (const pattern of resetPatterns) {
+          const match = pageText.match(pattern);
+          if (match) {
+            resetDate = `${match[1]}월 ${match[2]}일`;
+            console.log(`[${SERVICE_NAME}] Found reset date: ${resetDate}`);
+            break;
+          }
+        }
+
         // Look for "월간 AI 크레딧" section - the large number (560)
         const allElements = document.querySelectorAll('*');
 
@@ -46,15 +63,6 @@
               }
             }
             if (credits !== null) break;
-          }
-
-          // Also look for "다음 업데이트" for reset date
-          if (text.includes('다음 업데이트') || text.includes('Next update')) {
-            const dateMatch = text.match(/(\d{1,2})월\s*(\d{1,2})일|(\w+)\s+(\d{1,2})/);
-            if (dateMatch) {
-              resetDate = dateMatch[0];
-              console.log(`[${SERVICE_NAME}] Found reset date: ${resetDate}`);
-            }
           }
         }
 
@@ -154,10 +162,11 @@
       } else {
         services[SERVICE_ID] = {
           ...services[SERVICE_ID],
+          resetDate: resetDate || services[SERVICE_ID]?.resetDate,
           lastUpdated: new Date().toISOString()
         };
         await chrome.storage.local.set({ services });
-        console.log(`[${SERVICE_NAME}] Credits unchanged: ${credits}`);
+        console.log(`[${SERVICE_NAME}] Credits unchanged: ${credits}, resetDate: ${resetDate}`);
       }
 
     } catch (error) {
