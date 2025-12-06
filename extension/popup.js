@@ -1,16 +1,27 @@
 // Service configurations
+// clickUrl: URL to open when user clicks on service card
+// dataUrl: URL used for background data collection (not shown to user)
 const SERVICES = {
   kling: {
     id: 'kling',
     name: 'Kling AI',
-    url: 'https://app.klingai.com/global/membership/membership-plan',
+    clickUrl: 'https://app.klingai.com/global/',
+    dataUrl: 'https://app.klingai.com/global/membership/membership-plan',
     color: 'kling'
   },
   flow: {
     id: 'flow',
     name: 'Google Flow',
-    url: 'https://one.google.com/ai/activity?utm_source=flow',
+    clickUrl: 'https://labs.google/fx/ko/tools/flow',
+    dataUrl: 'https://one.google.com/ai/activity?utm_source=flow',
     color: 'flow'
+  },
+  wan: {
+    id: 'wan',
+    name: 'WAN AI',
+    clickUrl: 'https://create.wan.video/explore',
+    dataUrl: 'https://create.wan.video/my-member-and-credit',
+    color: 'wan'
   }
 };
 
@@ -116,7 +127,7 @@ function createServiceCard(config, data) {
   const expiryDate = formatExpiryDate(rawExpiryDate);
 
   card.innerHTML = `
-    <div class="service-header clickable-header" data-url="${config.url}">
+    <div class="service-header clickable-header" data-url="${config.clickUrl}">
       <div class="service-logo-placeholder ${config.color}" title="클릭하여 이동">
         ${config.name.charAt(0)}
       </div>
@@ -155,7 +166,7 @@ function createServiceCard(config, data) {
   // Add click event listener for the header (logo + service name area)
   const header = card.querySelector('.clickable-header');
   header.addEventListener('click', () => {
-    chrome.tabs.create({ url: config.url });
+    chrome.tabs.create({ url: config.clickUrl });
   });
 
   return card;

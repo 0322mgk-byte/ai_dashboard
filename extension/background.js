@@ -139,6 +139,10 @@ const SERVICE_CONFIGS = [
   {
     url: 'https://one.google.com/ai/activity?utm_source=flow',
     scriptFile: 'content-scripts/flow.js'
+  },
+  {
+    url: 'https://create.wan.video/my-member-and-credit',
+    scriptFile: 'content-scripts/wan.js'
   }
 ];
 

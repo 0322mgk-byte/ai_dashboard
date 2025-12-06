@@ -13,7 +13,9 @@
     "https://klingai.com/*",
     "https://app.klingai.com/*",
     "https://labs.google/*",
-    "https://one.google.com/*"
+    "https://one.google.com/*",
+    "https://create.wan.video/*",
+    "https://wan.video/*"
   ],
   "action": {
     "default_popup": "popup.html",
@@ -41,6 +43,11 @@
     {
       "matches": ["https://labs.google/*", "https://one.google.com/ai/*"],
       "js": ["content-scripts/flow.js"],
+      "run_at": "document_idle"
+    },
+    {
+      "matches": ["https://create.wan.video/*", "https://wan.video/*"],
+      "js": ["content-scripts/wan.js"],
       "run_at": "document_idle"
     }
   ]
