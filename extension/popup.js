@@ -140,7 +140,8 @@ function createServiceCard(config, data) {
         <circle cx="12" cy="12" r="10"/>
         <polyline points="12 6 12 12 16 14"/>
       </svg>
-      ${lastUpdated}
+      <span class="update-text">${lastUpdated}</span>
+      <span class="status-msg" data-service="${config.id}"></span>
     </div>
   `;
 
@@ -245,24 +246,33 @@ async function handleRefresh() {
   }
 }
 
-// Show toast notification
+// Show status message inline (next to update time)
+function showStatusMessage(message, type = 'info', serviceId = null) {
+  // If serviceId specified, show on specific card; otherwise show on all
+  const selectors = serviceId
+    ? `.status-msg[data-service="${serviceId}"]`
+    : '.status-msg';
+
+  const statusElements = document.querySelectorAll(selectors);
+
+  statusElements.forEach(el => {
+    el.textContent = message;
+    el.className = `status-msg ${type}`;
+
+    // Auto-hide after 3 seconds
+    setTimeout(() => {
+      el.style.opacity = '0';
+      setTimeout(() => {
+        el.textContent = '';
+        el.style.opacity = '1';
+        el.className = 'status-msg';
+      }, 300);
+    }, 3000);
+  });
+}
+
+// Show toast notification (for global messages)
 function showToast(message, type = 'info') {
-  const toast = document.createElement('div');
-  toast.className = `toast ${type}`;
-  toast.innerHTML = `
-    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-      ${type === 'success' ? '<path d="M22 11.08V12a10 10 0 11-5.93-9.14M22 4L12 14.01l-3-3"/>' : ''}
-      ${type === 'error' ? '<circle cx="12" cy="12" r="10"/><line x1="15" y1="9" x2="9" y2="15"/><line x1="9" y1="9" x2="15" y2="15"/>' : ''}
-      ${type === 'info' ? '<circle cx="12" cy="12" r="10"/><path d="M12 16v-4M12 8h.01"/>' : ''}
-    </svg>
-    ${message}
-  `;
-
-  toastContainer.appendChild(toast);
-
-  setTimeout(() => {
-    toast.style.opacity = '0';
-    toast.style.transform = 'translateY(10px)';
-    setTimeout(() => toast.remove(), 300);
-  }, 3000);
+  // Use inline status message instead
+  showStatusMessage(message, type);
 }
