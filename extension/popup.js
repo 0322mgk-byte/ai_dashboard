@@ -39,12 +39,50 @@ const saveSettingsBtn = document.getElementById('saveSettingsBtn');
 const autoRefreshToggle = document.getElementById('autoRefreshToggle');
 const refreshIntervalSelect = document.getElementById('refreshInterval');
 const intervalSetting = document.getElementById('intervalSetting');
+const darkModeToggle = document.getElementById('darkModeToggle');
+const cardOrderList = document.getElementById('cardOrderList');
+
+// Current card order (default order)
+let currentCardOrder = ['kling', 'flow', 'wan'];
+
+// Service visibility state (default: all visible)
+let serviceVisibility = {
+  kling: true,
+  flow: true,
+  wan: true
+};
 
 // Initialize
-document.addEventListener('DOMContentLoaded', () => {
+document.addEventListener('DOMContentLoaded', async () => {
+  await loadSettings();
   loadCredits();
   setupEventListeners();
 });
+
+// Load settings (dark mode, card order, visibility)
+async function loadSettings() {
+  try {
+    const result = await chrome.storage.local.get(['settings']);
+    const settings = result.settings || {};
+
+    // Apply dark mode
+    if (settings.darkMode) {
+      document.body.classList.add('dark-mode');
+    }
+
+    // Load card order
+    if (settings.cardOrder && Array.isArray(settings.cardOrder)) {
+      currentCardOrder = settings.cardOrder;
+    }
+
+    // Load service visibility
+    if (settings.serviceVisibility) {
+      serviceVisibility = { ...serviceVisibility, ...settings.serviceVisibility };
+    }
+  } catch (error) {
+    console.error('Failed to load settings:', error);
+  }
+}
 
 // Load credits from storage
 async function loadCredits() {
@@ -64,7 +102,12 @@ async function loadCredits() {
 function renderServices(services) {
   const hasData = Object.keys(services).some(key => services[key]?.credits !== undefined);
 
-  if (!hasData) {
+  // Check if any visible service has data
+  const hasVisibleData = currentCardOrder.some(key =>
+    serviceVisibility[key] && services[key]?.credits !== undefined
+  );
+
+  if (!hasData || !hasVisibleData) {
     servicesGrid.innerHTML = '';
     emptyState.classList.remove('hidden');
     return;
@@ -73,10 +116,14 @@ function renderServices(services) {
   emptyState.classList.add('hidden');
   servicesGrid.innerHTML = '';
 
-  Object.entries(SERVICES).forEach(([key, config]) => {
-    const serviceData = services[key];
-    const card = createServiceCard(config, serviceData);
-    servicesGrid.appendChild(card);
+  // Render cards in the saved order (only visible services)
+  currentCardOrder.forEach(key => {
+    const config = SERVICES[key];
+    if (config && serviceVisibility[key]) {
+      const serviceData = services[key];
+      const card = createServiceCard(config, serviceData);
+      servicesGrid.appendChild(card);
+    }
   });
 }
 
@@ -299,7 +346,10 @@ async function openSettingsModal() {
     const result = await chrome.storage.local.get(['settings']);
     const settings = result.settings || {};
 
-    // Set toggle state (default: true)
+    // Set dark mode toggle
+    darkModeToggle.checked = settings.darkMode || false;
+
+    // Set auto refresh toggle state (default: true)
     autoRefreshToggle.checked = settings.autoRefreshEnabled !== false;
 
     // Set interval value (default: 30)
@@ -309,11 +359,121 @@ async function openSettingsModal() {
     // Update interval setting visibility
     updateIntervalSettingState();
 
+    // Render card order list
+    renderCardOrderList();
+
     // Show modal
     settingsModal.classList.remove('hidden');
   } catch (error) {
     console.error('Failed to load settings:', error);
     showToast('설정을 불러올 수 없습니다', 'error');
+  }
+}
+
+// Render card order list for drag sorting
+function renderCardOrderList() {
+  cardOrderList.innerHTML = '';
+
+  currentCardOrder.forEach(key => {
+    const config = SERVICES[key];
+    if (!config) return;
+
+    const isVisible = serviceVisibility[key];
+    const item = document.createElement('div');
+    item.className = `card-order-item ${isVisible ? '' : 'disabled'}`;
+    item.setAttribute('data-service', key);
+    item.draggable = true;
+
+    item.innerHTML = `
+      <div class="drag-handle">
+        <span></span>
+        <span></span>
+        <span></span>
+      </div>
+      <div class="card-order-color ${config.color}">${config.name.charAt(0)}</div>
+      <span class="card-order-name">${config.name}</span>
+      <label class="toggle toggle-small">
+        <input type="checkbox" class="visibility-toggle" data-service="${key}" ${isVisible ? 'checked' : ''}>
+        <span class="toggle-slider"></span>
+      </label>
+    `;
+
+    // Drag events
+    item.addEventListener('dragstart', handleDragStart);
+    item.addEventListener('dragend', handleDragEnd);
+    item.addEventListener('dragover', handleDragOver);
+    item.addEventListener('drop', handleDrop);
+    item.addEventListener('dragleave', handleDragLeave);
+
+    // Visibility toggle event
+    const toggle = item.querySelector('.visibility-toggle');
+    toggle.addEventListener('change', (e) => {
+      e.stopPropagation();
+      const serviceKey = e.target.getAttribute('data-service');
+      serviceVisibility[serviceKey] = e.target.checked;
+      // Update item style
+      if (e.target.checked) {
+        item.classList.remove('disabled');
+      } else {
+        item.classList.add('disabled');
+      }
+    });
+
+    // Prevent toggle click from triggering drag
+    toggle.addEventListener('mousedown', (e) => e.stopPropagation());
+
+    cardOrderList.appendChild(item);
+  });
+}
+
+// Drag and drop handlers
+let draggedItem = null;
+
+function handleDragStart(e) {
+  draggedItem = this;
+  this.classList.add('dragging');
+  e.dataTransfer.effectAllowed = 'move';
+  e.dataTransfer.setData('text/plain', this.getAttribute('data-service'));
+}
+
+function handleDragEnd(e) {
+  this.classList.remove('dragging');
+  document.querySelectorAll('.card-order-item').forEach(item => {
+    item.classList.remove('drag-over');
+  });
+  draggedItem = null;
+}
+
+function handleDragOver(e) {
+  e.preventDefault();
+  e.dataTransfer.dropEffect = 'move';
+
+  if (this !== draggedItem) {
+    this.classList.add('drag-over');
+  }
+}
+
+function handleDragLeave(e) {
+  this.classList.remove('drag-over');
+}
+
+function handleDrop(e) {
+  e.preventDefault();
+  this.classList.remove('drag-over');
+
+  if (draggedItem && this !== draggedItem) {
+    const fromService = draggedItem.getAttribute('data-service');
+    const toService = this.getAttribute('data-service');
+
+    const fromIndex = currentCardOrder.indexOf(fromService);
+    const toIndex = currentCardOrder.indexOf(toService);
+
+    // Swap positions
+    currentCardOrder.splice(fromIndex, 1);
+    currentCardOrder.splice(toIndex, 0, fromService);
+
+    // Re-render the list
+    renderCardOrderList();
   }
 }
 
@@ -335,11 +495,24 @@ async function saveSettings() {
     const settings = result.settings || {};
 
     // Update settings
+    settings.darkMode = darkModeToggle.checked;
     settings.autoRefreshEnabled = autoRefreshToggle.checked;
     settings.autoRefreshInterval = parseInt(refreshIntervalSelect.value, 10);
+    settings.cardOrder = currentCardOrder;
+    settings.serviceVisibility = serviceVisibility;
 
     // Save to storage
     await chrome.storage.local.set({ settings });
+
+    // Apply dark mode immediately
+    if (settings.darkMode) {
+      document.body.classList.add('dark-mode');
+    } else {
+      document.body.classList.remove('dark-mode');
+    }
+
+    // Re-render cards with new order and visibility
+    loadCredits();
 
     // Notify background script to update alarm
     chrome.runtime.sendMessage({ type: 'UPDATE_ALARM_SETTINGS' });

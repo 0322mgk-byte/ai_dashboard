@@ -59,30 +59,61 @@
         </button>
       </div>
       <div class="modal-body">
-        <!-- Auto Refresh Toggle -->
-        <div class="setting-item">
-          <div class="setting-info">
-            <span class="setting-label">백그라운드 자동 수집</span>
-            <span class="setting-desc">주기적으로 크레딧 정보를 자동 수집합니다</span>
+        <!-- UI Customization Section -->
+        <div class="setting-section">
+          <h3 class="setting-section-title">UI 커스터마이징</h3>
+
+          <!-- Dark Mode Toggle -->
+          <div class="setting-item">
+            <div class="setting-info">
+              <span class="setting-label">다크 모드</span>
+              <span class="setting-desc">어두운 테마로 전환합니다</span>
+            </div>
+            <label class="toggle">
+              <input type="checkbox" id="darkModeToggle">
+              <span class="toggle-slider"></span>
+            </label>
           </div>
-          <label class="toggle">
-            <input type="checkbox" id="autoRefreshToggle">
-            <span class="toggle-slider"></span>
-          </label>
         </div>
 
-        <!-- Refresh Interval -->
-        <div class="setting-item" id="intervalSetting">
-          <div class="setting-info">
-            <span class="setting-label">자동 새로고침 주기</span>
-            <span class="setting-desc">크레딧 정보를 수집하는 간격</span>
+        <!-- Data Collection Section -->
+        <div class="setting-section">
+          <h3 class="setting-section-title">데이터 수집</h3>
+
+          <!-- Auto Refresh Toggle -->
+          <div class="setting-item">
+            <div class="setting-info">
+              <span class="setting-label">백그라운드 자동 수집</span>
+              <span class="setting-desc">주기적으로 크레딧 정보를 자동 수집합니다</span>
+            </div>
+            <label class="toggle">
+              <input type="checkbox" id="autoRefreshToggle">
+              <span class="toggle-slider"></span>
+            </label>
           </div>
-          <select id="refreshInterval" class="setting-select">
-            <option value="5">5분</option>
-            <option value="10">10분</option>
-            <option value="30">30분</option>
-            <option value="60">1시간</option>
-          </select>
+
+          <!-- Refresh Interval -->
+          <div class="setting-item" id="intervalSetting">
+            <div class="setting-info">
+              <span class="setting-label">자동 새로고침 주기</span>
+              <span class="setting-desc">크레딧 정보를 수집하는 간격</span>
+            </div>
+            <select id="refreshInterval" class="setting-select">
+              <option value="5">5분</option>
+              <option value="10">10분</option>
+              <option value="30">30분</option>
+              <option value="60">1시간</option>
+            </select>
+          </div>
+        </div>
+
+        <!-- Card Order & Visibility Section -->
+        <div class="setting-section">
+          <h3 class="setting-section-title">서비스 관리</h3>
+          <p class="setting-section-desc">드래그로 순서 변경, 토글로 표시/숨김</p>
+          <div id="cardOrderList" class="card-order-list">
+            <!-- Card order items will be inserted here -->
+          </div>
         </div>
       </div>
       <div class="modal-footer">
